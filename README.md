@@ -25,6 +25,16 @@ Webbaserat verktyg för projektledare: från anbud till budget, timuppföljning,
 
 Fristående sparas projekten i webbläsarens lokala lagring. I artefaktversionen sparas de på servern.
 
+## Säkerhet och riktiga filer
+
+- Repot ska vara **privat**. Det innehåller bara kod och påhittade exempel.
+- `.gitignore` stoppar PDF, Word, Excel och CSV utanför `exempel/`, och allt i `privat/`. Lägg riktiga anbud och timrapporter där när du testar lokalt.
+- Prototypen läser filen i webbläsaren. Bara texten skickas till Claude för tolkning, och bara de godkända projektuppgifterna sparas, inte filen.
+
+## Utseende
+
+Färgerna ligger som variabler överst i stilmallen och logotypen i `BRAND` i skriptet. Byt dem mot värdena från företagets varumärkesportal.
+
 ## Exempeldata
 
 `exempel/` innehåller påhittade anbud:

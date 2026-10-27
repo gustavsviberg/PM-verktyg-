@@ -1,0 +1,16 @@
+# Riktiga anbud, timrapporter och kunddata får aldrig checkas in.
+# Lägg dem i mappen privat/ (eller utanför repot) när du testar lokalt.
+privat/
+data/
+uppladdat/
+*.local.*
+.env
+.env.*
+
+# Allt annat än de påhittade exempelfilerna i exempel/ stoppas
+*.pdf
+*.docx
+*.xlsx
+*.xls
+*.csv
+!exempel/*
