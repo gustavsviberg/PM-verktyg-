@@ -1,0 +1,791 @@
+<!doctype html>
+<html lang="sv"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+</head><body>
+<title>Projektledarverktyget</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: en arbetsyta. Fast toppfält med projektval, under det flikar per etapp och en bred innehållsyta. Guiden för nytt projekt tar över ytan steg för steg. */
+:root{
+  --bg:#F2F4F5; --surface:#FFFFFF; --sunk:#E8ECEE; --ink:#15222B; --muted:#5A6A74; --line:#D6DDE1;
+  --accent:#1D5C86; --accent-soft:#E3EEF5; --on-accent:#FFFFFF;
+  --warn:#9A5B00; --warn-bg:#FFF2DB; --warn-line:#F0C77A;
+  --ok:#256B43; --ok-bg:#E3F2E9; --danger:#B3261E; --danger-bg:#FBE9E7;
+  --f-display:"Archivo","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E161B; --surface:#152028; --sunk:#1B2832; --ink:#E4ECF0; --muted:#94A5AF; --line:#2A3A44;
+  --accent:#70B4E2; --accent-soft:#1B3445; --on-accent:#0E161B;
+  --warn:#F2B860; --warn-bg:#352812; --warn-line:#6B5020;
+  --ok:#76D29E; --ok-bg:#15301F; --danger:#F28A82; --danger-bg:#3A1A18; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E161B; --surface:#152028; --sunk:#1B2832; --ink:#E4ECF0; --muted:#94A5AF; --line:#2A3A44;
+  --accent:#70B4E2; --accent-soft:#1B3445; --on-accent:#0E161B;
+  --warn:#F2B860; --warn-bg:#352812; --warn-line:#6B5020;
+  --ok:#76D29E; --ok-bg:#15301F; --danger:#F28A82; --danger-bg:#3A1A18; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;letter-spacing:-.005em}
+h1{font-size:24px;line-height:1.2}
+h2{font-size:18px}
+h3{font-size:15px}
+.num,td.n,th.n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.mono{font-family:var(--f-mono);font-size:12.5px}
+.muted{color:var(--muted)}
+.label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1240px;margin:0 auto}
+
+/* Toppfält */
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:8px;font-family:var(--f-display);font-weight:700;font-size:15px;white-space:nowrap}
+.brand svg{flex:none}
+.picker{display:flex;align-items:center;gap:8px;flex:1 1 280px;min-width:0}
+.picker select{flex:1;min-width:0;max-width:460px}
+.store{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)}
+
+select,input[type=text],input[type=number],input[type=date],textarea{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:7px 9px;min-width:0}
+select{padding-right:28px}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:7px 12px;cursor:pointer;font-weight:500;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--sunk)}
+.btn.danger{color:var(--danger)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.sm{padding:4px 8px;font-size:12.5px}
+
+/* Flikar */
+.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin-top:4px}
+.tab{padding:10px 14px;border:0;background:none;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;color:var(--muted);font-weight:500}
+.tab[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.tab:disabled{cursor:default;opacity:.55}
+.tab small{font-size:10.5px;margin-left:4px;letter-spacing:.03em}
+
+main{padding-block:20px 60px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:8px}
+.panel>.hd{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.panel>.bd{padding:16px}
+.stack{display:grid;gap:16px}
+.stack>*,main>*{min-width:0}
+[hidden]{display:none!important}
+
+/* Projekthuvud */
+.phead{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between}
+.phead .t{min-width:0;flex:1 1 360px}
+.phead .eyebrow{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;background:var(--sunk);color:var(--ink);white-space:nowrap}
+.chip.accent{background:var(--accent-soft);color:var(--accent)}
+.chip.warn{background:var(--warn-bg);color:var(--warn)}
+.chip.ok{background:var(--ok-bg);color:var(--ok)}
+.meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px 24px}
+.meta div{min-width:0}
+.meta .v{font-weight:500;overflow-wrap:anywhere}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px}
+.kpi .v{font-family:var(--f-display);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .s{font-size:12px;color:var(--muted)}
+
+/* Tabeller */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--surface);white-space:nowrap}
+tr.phase td{background:var(--sunk);font-weight:600}
+tr.sum td{font-weight:700;border-bottom:0;border-top:2px solid var(--ink)}
+tr.flag td{background:var(--warn-bg)}
+td input,td select{width:100%;padding:5px 7px}
+td input.n{text-align:right;font-variant-numeric:tabular-nums}
+td.code{font-family:var(--f-mono);font-size:12.5px;color:var(--muted);white-space:nowrap}
+
+/* Guide */
+.steps{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:13px}
+.step{display:flex;align-items:center;gap:7px;color:var(--muted)}
+.step b{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);font-size:11.5px;font-weight:600}
+.step.on{color:var(--ink);font-weight:600}
+.step.on b{border-color:var(--accent);background:var(--accent);color:var(--on-accent)}
+.step.done b{border-color:var(--ok);color:var(--ok)}
+.timer{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:6px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:36px 20px;text-align:center;background:var(--bg);transition:border-color .15s,background .15s;cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop h2{margin-bottom:4px}
+.formats{display:flex;justify-content:center;gap:6px;margin-top:12px;flex-wrap:wrap}
+.examples{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.ex{display:flex;gap:12px;align-items:flex-start;text-align:left;border:1px solid var(--line);border-radius:8px;padding:12px 14px;background:var(--surface);cursor:pointer}
+.ex:hover{border-color:var(--accent)}
+.ex .ic{flex:none;width:34px;height:40px;border-radius:4px;display:grid;place-items:center;font:600 10px var(--f-mono);color:var(--on-accent);background:var(--accent)}
+.ex .ic.x{background:var(--ok)}
+.ex div{min-width:0}
+.reading{display:grid;gap:14px;justify-items:center;text-align:center;padding:40px 16px}
+.bar{width:min(420px,100%);height:6px;border-radius:3px;background:var(--sunk);overflow:hidden;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;width:35%;background:var(--accent);border-radius:3px;animation:slide 1.4s ease-in-out infinite}
+@keyframes slide{0%{left:-35%}100%{left:100%}}
+@media (prefers-reduced-motion:reduce){.bar i{animation:none;width:60%}}
+.stream{max-width:640px;width:100%;max-height:120px;overflow:hidden;font:12px/1.45 var(--f-mono);color:var(--muted);text-align:left;white-space:pre-wrap;mask-image:linear-gradient(transparent,#000 40%)}
+
+.fields{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px 18px}
+.field{display:grid;gap:4px;min-width:0}
+.field>input,.field>select{width:100%}
+.field.unsure>input,.field.unsure>select{border-color:var(--warn-line);background:var(--warn-bg)}
+.fl{display:flex;align-items:center;gap:6px;justify-content:space-between}
+.why{font-size:12px;color:var(--warn)}
+.flagbtn{border:0;cursor:pointer;font:inherit}
+.q{border:1.5px solid var(--warn-line);background:var(--warn-bg);border-radius:10px;padding:14px 16px;display:grid;gap:10px}
+.q.answered{border-color:var(--line);background:var(--surface)}
+.choice{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.choice label{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface);cursor:pointer}
+.choice label:has(input:checked){border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.choice input{margin-top:3px;accent-color:var(--accent)}
+.check{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 14px;border-radius:8px;font-size:13px}
+.check.ok{background:var(--ok-bg);color:var(--ok)}
+.check.warn{background:var(--warn-bg);color:var(--warn)}
+.foot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:flex-end;position:sticky;bottom:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+.foot .grow{margin-right:auto;font-size:13px}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:8px;background:var(--accent-soft);color:var(--ink);font-size:13px}
+.notice.warn{background:var(--warn-bg)}
+.list{margin:0;padding-left:18px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+.cols>*{min-width:0}
+.empty{padding:56px 16px;text-align:center;display:grid;gap:12px;justify-items:center}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--danger-bg);color:var(--danger);padding:8px 12px;border-radius:8px;font-size:13px}
+.err{color:var(--danger)}
+@media (max-width:560px){h1{font-size:20px}.store span{display:none}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="3" width="20" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="7" width="8" height="2.6" rx="1" fill="var(--accent)"/><rect x="8" y="11" width="9" height="2.6" rx="1" fill="var(--accent)"/><path d="M15 3v16" stroke="var(--danger)" stroke-width="1.4"/></svg>
+      Projektledarverktyget
+    </div>
+    <div class="picker">
+      <label for="projSel" class="label" style="white-space:nowrap">Projekt</label>
+      <select id="projSel" aria-label="Välj projekt"></select>
+      <button class="btn primary" id="newBtn" type="button">
+        <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Nytt projekt
+      </button>
+    </div>
+    <div class="store" id="store"><i class="dot"></i><span>Hämtar projekt…</span></div>
+  </div>
+  <div class="wrap">
+    <nav class="tabs" role="tablist" aria-label="Vyer">
+      <button class="tab" role="tab" aria-selected="true">Översikt</button>
+      <button class="tab" role="tab" disabled>Budget<small>etapp 2</small></button>
+      <button class="tab" role="tab" disabled>Timmar<small>etapp 3</small></button>
+      <button class="tab" role="tab" disabled>Prognos<small>etapp 3</small></button>
+      <button class="tab" role="tab" disabled>Tidplan<small>etapp 4</small></button>
+      <button class="tab" role="tab" disabled>Export<small>etapp 5</small></button>
+      <button class="tab" role="tab" disabled>Delning<small>etapp 6</small></button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+<input type="file" id="fileIn" accept=".pdf,.docx,.xlsx,.xls,.csv,.txt" hidden>
+
+<script>
+const EXEMPEL = {
+ "A": {
+  "filnamn": "Exempelanbud_Ekbackens_forskola.docx",
+  "text": "Anbud – Konstruktionsprojektering, nybyggnad Ekbackens förskola\nAnbud A-2026-114\nAnbudsdatum: 2026-10-20\nTill: Lindvik kommun, Fastighetsavdelningen\nAvser: Konstruktionsprojektering, nybyggnad Ekbackens förskola\nVi tackar för förfrågan och lämnar härmed anbud på konstruktionsprojektering för nybyggnad av Ekbackens förskola, två plan med stomme i KL-trä och grundläggning på platta på mark.\nUppdraget planeras att starta 2026-11-16 och avslutas 2027-08-31 i och med överlämnade relationshandlingar.\nTimpriser\nRoll | Timpris (kr/h)\nUppdragsledare | 1 250\nKonstruktör | 1 050\nHandläggare/ritare | 900\nBIM-samordnare | 1 000\nArbetsmoment och leveranser\nKod | Moment | Roll | Timmar | Belopp (kr)\nFas 1 – Utredning |  |  |  | \n1.1 | Startmöte och inventering av befintligt underlag | Uppdragsledare | 12 | 15 000\n1.2 | Förstudie stomval | Konstruktör | 40 | 42 000\nFas 2 – Systemhandling |  |  |  | \n2.1 | Systemhandling konstruktion | Konstruktör | 120 | 126 000\n2.2 | Projekteringsmöten (12 st) | Uppdragsledare | 36 | 45 000\nFas 3 – Bygghandling |  |  |  | \n3.1 | Bygghandling stomme och grund | Konstruktör | 220 | 231 000\n3.2 | Ritningsproduktion | Handläggare/ritare | 180 | 162 000\n3.3 | BIM-samordning och kollisionskontroll | BIM-samordnare | 70 | 70 000\n3.4 | Egenkontroll och granskning | Uppdragsledare | 16 | 20 000\nFas 4 – Byggskede |  |  |  | \n4.1 | Medverkan i byggskede, byggplatsbesök | Konstruktör | 48 | 50 400\n4.2 | Relationshandlingar | Handläggare/ritare | 30 | 27 000\n | Summa |  | 772 | 788 400\nArvode och villkor\nUppdraget utförs till fast arvode om 788 400 kr exklusive moms, enligt ABK 09.\nReserv för oförutsett: 5 % (39 420 kr). Reserven ingår inte i det fasta arvodet och avropas efter beställarens skriftliga godkännande.\nÁ-priser: Tillkommande projekteringsmöte utöver 12 st debiteras med 4 500 kr/st. Tilläggsarbeten (ÄTA) debiteras enligt timpriserna ovan.\nFakturering sker månadsvis i takt med upparbetning. Betalningsvillkor 30 dagar.\nMed vänlig hälsning\nKarin Ström, Uppdragsledare, Stomkonsult Norr AB"
+ },
+ "B": {
+  "filnamn": "Exempelanbud_Dagvatten_Norra_hamnen.xlsx",
+  "text": "Anbud | Dagvattenutredning Norra hamnen\nBeställare | Säterö Hamn AB\nAnbudsnummer | 2026-0871\nAnbudsdatum | 2026-10-12\nPeriod | 2026-12-01 – 2027-04-30\nRoll | Timpris (kr/h)\nUppdragsledare | 1300\nUtredare | 1080\nGIS-ingenjör | 980\nNr | Moment | Roll | Timmar | Belopp (kr)\n1 | Insamling av underlag | Utredare | 24 | 25920\n2 | Platsbesök och inmätning | GIS-ingenjör | 32 | 31360\n3 | Hydraulisk modellering | Utredare | 90 | 97200\n4 | Åtgärdsförslag | Utredare | 40 | 43200\n5 | Rapport och presentation | Uppdragsledare | 28 | 36400\n6 | Möten med beställaren | Uppdragsledare | 12 | 15600\n | Bedömd kostnad |  | 226 | 249680\nVillkor | Ersättning enligt ABK 09. Utskrift av rapport á 650 kr/st."
+ }
+};
+
+// ---------- Hjälpfunktioner ----------
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const kr = n => (n == null || isNaN(n)) ? "–" : Math.round(n).toLocaleString("sv-SE") + " kr";
+const tal = n => (n == null || isNaN(n)) ? "–" : (+n).toLocaleString("sv-SE", { maximumFractionDigits: 1 });
+const num = v => { if (v == null || v === "") return null; if (typeof v === "number") return v; const s = String(v).replace(/[\s ]/g, "").replace(/kr.*$/i, "").replace(",", "."); const n = parseFloat(s); return isNaN(n) ? null : n; };
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const iso = s => { const m = String(s ?? "").match(/(\d{4})-(\d{2})-(\d{2})/); return m ? m[0] : ""; };
+const datum = s => s ? new Date(s + "T12:00:00").toLocaleDateString("sv-SE", { day: "numeric", month: "short", year: "numeric" }) : "–";
+const FORM = { fast: "Fast pris", rorligt: "Löpande räkning" };
+const STATUS = ["Anbud", "Pågående", "Vilande", "Avslutat"];
+function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); t.textContent = msg; document.body.append(t); setTimeout(() => t.remove(), 3800); }
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+function loadScript(src) { return new Promise((res, rej) => { if (document.querySelector(`script[src="${src}"]`)) return res(); const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("Kunde inte ladda " + src)); document.head.append(s); }); }
+
+// ---------- Lagring: molnet (db) med webbläsaren som reserv ----------
+const store = {
+  mode: "väntar", projects: [], db: null, me: null,
+  async init() {
+    const fallback = () => { this.mode = "lokal"; this.projects = lsGet("pmv.projekt", []); renderStore(); render(); };
+    if (!window.claude?.use) return fallback();
+    try {
+      const db = await window.claude.use("db");
+      if (!db) return fallback();
+      this.db = db; this.mode = "moln";
+      claude.use("user").then(u => u?.id?.().then(id => this.me = id).catch(() => {})).catch(() => {});
+      db.collection("projects").onSnapshot(snap => {
+        this.projects = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderStore(); render();
+      }, e => { this.mode = "fel"; this.err = e?.message; renderStore(); });
+    } catch { fallback(); }
+  },
+  async save(p) {
+    p.uppdaterad = new Date().toISOString();
+    if (this.mode === "moln") { await this.db.collection("projects").doc(p.id).set(JSON.parse(JSON.stringify(p))); }
+    else { const i = this.projects.findIndex(x => x.id === p.id); i >= 0 ? this.projects[i] = p : this.projects.push(p); lsSet("pmv.projekt", this.projects); render(); }
+  },
+  async remove(id) {
+    if (this.mode === "moln") await this.db.collection("projects").doc(id).delete();
+    else { this.projects = this.projects.filter(p => p.id !== id); lsSet("pmv.projekt", this.projects); render(); }
+  }
+};
+function renderStore() {
+  const el = $("#store");
+  const m = { moln: ["ok", "Sparas i molnet"], lokal: ["warn", "Sparas bara i den här webbläsaren"], fel: ["warn", "Kunde inte nå lagringen"], "väntar": ["", "Hämtar projekt…"] }[store.mode];
+  el.innerHTML = `<i class="dot ${m[0]}"></i><span>${m[1]}</span>`;
+  el.title = m[1];
+}
+
+// ---------- Tillstånd ----------
+const ui = { view: "projekt", selected: lsGet("pmv.valt", null), editing: false, confirmDelete: false, wiz: null };
+const sorted = () => [...store.projects].sort((a, b) => (b.skapad || "").localeCompare(a.skapad || ""));
+const current = () => store.projects.find(p => p.id === ui.selected) || sorted()[0] || null;
+const projCost = p => (p.tasks || []).reduce((s, t) => s + (num(t.timmar) || 0) * (num(t.timpris) || 0), 0);
+const projHours = p => (p.tasks || []).reduce((s, t) => s + (num(t.timmar) || 0), 0);
+
+function renderPicker() {
+  const sel = $("#projSel"); const list = sorted(); const cur = current();
+  sel.innerHTML = list.length ? list.map(p => `<option value="${esc(p.id)}" ${cur && p.id === cur.id ? "selected" : ""}>${esc(p.uppdragsnummer ? p.uppdragsnummer + " · " : "")}${esc(p.namn)}</option>`).join("") : `<option>Inga projekt ännu</option>`;
+  sel.disabled = !list.length || ui.view === "wizard";
+}
+$("#projSel").onchange = e => { ui.selected = e.target.value; lsSet("pmv.valt", ui.selected); ui.editing = false; ui.confirmDelete = false; render(); };
+$("#newBtn").onclick = () => startWizard();
+
+function render() {
+  renderPicker();
+  document.querySelectorAll(".tab").forEach(t => t.closest(".tabs").hidden = ui.view === "wizard");
+  if (ui.view === "wizard") return renderWizard();
+  const app = $("#app"); const p = current();
+  if (store.mode === "väntar") { app.innerHTML = `<div class="empty muted">Hämtar dina projekt…</div>`; return; }
+  if (!p) {
+    app.innerHTML = `<div class="panel"><div class="empty">
+      <svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true"><rect x="9" y="5" width="36" height="44" rx="4" fill="none" stroke="var(--line)" stroke-width="2"/><path d="M17 17h20M17 25h20M17 33h12" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"/></svg>
+      <h2>Inga projekt ännu</h2><p class="muted" style="max-width:46ch;margin:0">Skapa ditt första projekt genom att dra in ett anbud. Verktyget läser ut namn, beställare, ersättningsform, timpriser och arbetsmoment åt dig.</p>
+      <button class="btn primary" onclick="startWizard()">Nytt projekt från anbud</button></div></div>`;
+    return;
+  }
+  renderProject(app, p);
+}
+
+// ---------- Projektöversikt ----------
+function groupTasks(p) {
+  const groups = []; const by = {};
+  (p.tasks || []).forEach(t => { const f = t.fas || "Övrigt"; if (!by[f]) { by[f] = []; groups.push(f); } by[f].push(t); });
+  return groups.map(f => ({ fas: f, tasks: by[f], ingenFas: groups.length === 1 && f === "Övrigt" }));
+}
+function renderProject(app, p) {
+  const cost = projCost(p), hours = projHours(p);
+  const diff = p.anbud?.totalsumma ? cost - p.anbud.totalsumma : 0;
+  const res = (p.reserver || []).reduce((s, r) => s + (num(r.belopp) || 0), 0);
+  const days = p.startdatum && p.slutdatum ? Math.round((new Date(p.slutdatum) - new Date(p.startdatum)) / 864e5) : null;
+  const meta = ui.editing ? editForm(p) : `
+    <div class="meta">
+      <div><div class="label">Uppdragsnummer</div><div class="v mono">${esc(p.uppdragsnummer || "–")}</div></div>
+      <div><div class="label">Beställare</div><div class="v">${esc(p.bestallare || "–")}</div></div>
+      <div><div class="label">Ersättningsform</div><div class="v">${esc(FORM[p.ersattningsform] || "–")}</div></div>
+      <div><div class="label">Period</div><div class="v">${datum(p.startdatum)} – ${datum(p.slutdatum)}</div></div>
+      <div><div class="label">Anbud</div><div class="v">${esc(p.anbud?.anbudsnummer || "–")}${p.anbud?.anbudsdatum ? `, ${datum(p.anbud.anbudsdatum)}` : ""}</div></div>
+      <div><div class="label">Källa</div><div class="v" style="font-size:13px">${esc(p.anbud?.filnamn || "Skapat manuellt")}</div></div>
+    </div>`;
+  app.innerHTML = `<div class="stack">
+    <section class="panel"><div class="bd stack">
+      <div class="phead">
+        <div class="t">
+          <div class="eyebrow">
+            <span class="chip ${p.status === "Pågående" ? "ok" : p.status === "Anbud" ? "accent" : ""}">${esc(p.status)}</span>
+            <span class="chip">${esc(FORM[p.ersattningsform] || "Ersättningsform saknas")}</span>
+            ${p.exempel ? `<span class="chip warn">Exempeldata</span>` : ""}
+          </div>
+          <h1>${esc(p.namn)}</h1>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${ui.editing ? "" : `<button class="btn" onclick="ui.editing=true;render()">Redigera uppgifter</button>`}
+          <button class="btn ghost danger" onclick="ui.confirmDelete=true;render()">Ta bort</button>
+        </div>
+      </div>
+      ${ui.confirmDelete ? `<div class="confirm">Ta bort ”${esc(p.namn)}” för alla som har tillgång? Det går inte att ångra.
+        <button class="btn sm danger" onclick="deleteProject('${esc(p.id)}')">Ja, ta bort</button><button class="btn sm" onclick="ui.confirmDelete=false;render()">Avbryt</button></div>` : ""}
+      ${meta}
+    </div></section>
+
+    <section class="kpis">
+      <div class="kpi"><div class="label">Budget enligt anbud</div><div class="v">${kr(cost)}</div><div class="s">${diff ? `<span style="color:var(--warn)">${kr(diff)} mot anbudets totalsumma</span>` : p.anbud?.totalsumma ? "Stämmer med anbudets totalsumma" : "Summa av alla arbetsmoment"}</div></div>
+      <div class="kpi"><div class="label">Timmar</div><div class="v">${tal(hours)} h</div><div class="s">Snittpris ${hours ? kr(cost / hours) + "/h" : "–"}</div></div>
+      <div class="kpi"><div class="label">Arbetsmoment</div><div class="v">${(p.tasks || []).length}</div><div class="s">${groupTasks(p)[0]?.ingenFas ? "utan fasindelning" : `i ${groupTasks(p).length} ${groupTasks(p).length === 1 ? "fas" : "faser"}`}</div></div>
+      <div class="kpi"><div class="label">Reserv utanför budget</div><div class="v">${kr(res)}</div><div class="s">${days != null ? `Projekttid ${Math.round(days / 7)} veckor` : ""}</div></div>
+    </section>
+
+    <section class="panel">
+      <div class="hd"><h2>Arbetsmoment från anbudet</h2><span class="muted" style="font-size:12.5px">Blir budgetens baslinje i etapp 2</span></div>
+      <div class="tw"><table>
+        <thead><tr><th>Kod</th><th>Moment</th><th>Roll</th><th class="n">Timmar</th><th class="n">Timpris</th><th class="n">Kostnad</th></tr></thead>
+        <tbody>${groupTasks(p).map(g => {
+          const gc = g.tasks.reduce((s, t) => s + (num(t.timmar) || 0) * (num(t.timpris) || 0), 0), gh = g.tasks.reduce((s, t) => s + (num(t.timmar) || 0), 0);
+          return (g.ingenFas ? "" : `<tr class="phase"><td colspan="3">${esc(g.fas)}</td><td class="n">${tal(gh)}</td><td></td><td class="n">${kr(gc)}</td></tr>`) +
+            g.tasks.map(t => `<tr><td class="code">${esc(t.kod)}</td><td>${esc(t.namn)}</td><td>${esc(t.roll)}</td><td class="n">${tal(t.timmar)}</td><td class="n">${kr(t.timpris)}</td><td class="n">${kr((num(t.timmar) || 0) * (num(t.timpris) || 0))}</td></tr>`).join("");
+        }).join("")}
+        <tr class="sum"><td colspan="3">Totalt</td><td class="n">${tal(hours)}</td><td></td><td class="n">${kr(cost)}</td></tr></tbody>
+      </table></div>
+    </section>
+
+    <div class="cols">
+      <section class="panel"><div class="hd"><h3>Timpriser per roll</h3></div><div class="tw"><table><tbody>
+        ${(p.roller || []).map(r => `<tr><td>${esc(r.namn)}</td><td class="n">${kr(r.timpris)}/h</td></tr>`).join("") || `<tr><td class="muted">Inga roller</td></tr>`}
+      </tbody></table></div></section>
+      <section class="panel"><div class="hd"><h3>Á-priser och reserver</h3></div><div class="tw"><table><tbody>
+        ${(p.apriser || []).map(a => `<tr><td>${esc(a.beskrivning)}</td><td class="n">${kr(a.pris)}${a.enhet ? "/" + esc(a.enhet) : ""}</td></tr>`).join("")}
+        ${(p.reserver || []).map(r => `<tr><td>${esc(r.beskrivning)}<div class="muted" style="font-size:12px">${r.ingar ? "Ingår i anbudssumman" : "Ingår inte i anbudssumman"}</div></td><td class="n">${kr(r.belopp)}</td></tr>`).join("")}
+        ${!(p.apriser || []).length && !(p.reserver || []).length ? `<tr><td class="muted">Inga á-priser eller reserver i anbudet</td></tr>` : ""}
+      </tbody></table></div></section>
+    </div>
+  </div>`;
+}
+function editForm(p) {
+  return `<form id="editF" class="stack">
+    <div class="fields">
+      ${fld("e_namn", "Projektnamn", `<input type="text" id="e_namn" value="${esc(p.namn)}" required>`)}
+      ${fld("e_nr", "Uppdragsnummer", `<input type="text" id="e_nr" value="${esc(p.uppdragsnummer)}">`)}
+      ${fld("e_best", "Beställare", `<input type="text" id="e_best" value="${esc(p.bestallare)}">`)}
+      ${fld("e_form", "Ersättningsform", `<select id="e_form"><option value="fast" ${p.ersattningsform === "fast" ? "selected" : ""}>Fast pris</option><option value="rorligt" ${p.ersattningsform === "rorligt" ? "selected" : ""}>Löpande räkning</option></select>`)}
+      ${fld("e_start", "Startdatum", `<input type="date" id="e_start" value="${esc(p.startdatum)}">`)}
+      ${fld("e_slut", "Slutdatum", `<input type="date" id="e_slut" value="${esc(p.slutdatum)}">`)}
+      ${fld("e_status", "Status", `<select id="e_status">${STATUS.map(s => `<option ${s === p.status ? "selected" : ""}>${s}</option>`).join("")}</select>`)}
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" onclick="ui.editing=false;render()">Avbryt</button><button class="btn primary">Spara</button></div>
+  </form>`;
+}
+function fld(id, label, control) { return `<div class="field"><label class="label" for="${id}">${label}</label>${control}</div>`; }
+document.addEventListener("submit", async e => {
+  if (e.target.id !== "editF") return; e.preventDefault();
+  const p = { ...current() };
+  Object.assign(p, { namn: $("#e_namn").value.trim() || p.namn, uppdragsnummer: $("#e_nr").value.trim(), bestallare: $("#e_best").value.trim(), ersattningsform: $("#e_form").value, startdatum: $("#e_start").value, slutdatum: $("#e_slut").value, status: $("#e_status").value });
+  try { await store.save(p); ui.editing = false; render(); toast("Uppgifterna är sparade"); } catch (err) { toast("Kunde inte spara: " + (err?.message || err)); }
+});
+async function deleteProject(id) {
+  try { await store.remove(id); ui.confirmDelete = false; ui.selected = null; lsSet("pmv.valt", null); render(); toast("Projektet är borttaget"); } catch (err) { toast("Kunde inte ta bort: " + (err?.message || err)); }
+}
+
+// ---------- Guide: nytt projekt ----------
+function startWizard() {
+  ui.view = "wizard";
+  ui.wiz = { step: 1, start: Date.now(), draft: null, err: null };
+  clearInterval(ui.tick); ui.tick = setInterval(() => { const el = $("#wizTimer"); if (el) el.textContent = elapsed(); }, 1000);
+  render();
+}
+function closeWizard() { ui.wiz?.ctl?.abort(); clearInterval(ui.tick); ui.view = "projekt"; ui.wiz = null; render(); }
+function elapsed() { const s = Math.floor((Date.now() - ui.wiz.start) / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+
+function renderWizard() {
+  const w = ui.wiz, app = $("#app");
+  const steps = ["Dra in anbud", "Verktyget läser", "Granska och godkänn"];
+  const head = `<div class="hd" style="gap:12px">
+      <div class="steps">${steps.map((s, i) => `<span class="step ${w.step === i + 1 ? "on" : w.step > i + 1 ? "done" : ""}"><b>${w.step > i + 1 ? "✓" : i + 1}</b>${s}</span>`).join("")}</div>
+      <span class="timer" title="Tid sedan du startade guiden"><svg width="13" height="13" viewBox="0 0 13 13" aria-hidden="true"><circle cx="6.5" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M6.5 4.2V7l2 1.3" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg><span id="wizTimer">${elapsed()}</span></span>
+      <button class="btn ghost sm" onclick="closeWizard()">Avbryt</button></div>`;
+  let body = "";
+  if (w.step === 1) body = `<div class="bd stack">
+      <div><h1 style="margin-bottom:4px">Nytt projekt</h1><p class="muted" style="margin:0">Dra in anbudet så läser verktyget ut uppgifterna. Inget sparas innan du har granskat och godkänt.</p></div>
+      ${w.err ? `<div class="notice warn"><span class="err">${esc(w.err)}</span></div>` : ""}
+      <div class="drop" id="drop" tabindex="0" role="button" aria-label="Välj anbudsfil">
+        <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 26V8m0 0-7 7m7-7 7 7" stroke="var(--accent)" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 25v5a3 3 0 0 0 3 3h20a3 3 0 0 0 3-3v-5" stroke="var(--muted)" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+        <h2>Släpp anbudet här</h2>
+        <div class="muted">eller klicka för att välja en fil</div>
+        <div class="formats"><span class="chip">PDF</span><span class="chip">Word (.docx)</span><span class="chip">Excel (.xlsx)</span><span class="chip">CSV</span></div>
+      </div>
+      <div class="stack" style="gap:8px">
+        <div class="label">Inget anbud till hands? Prova med ett påhittat exempel</div>
+        <div class="examples">
+          <button class="ex" onclick="useExample('A')"><span class="ic">DOCX</span><div><b>Ekbackens förskola</b><div class="muted" style="font-size:12.5px">Konstruktionsprojektering, fast arvode, 10 moment i 4 faser</div></div></button>
+          <button class="ex" onclick="useExample('B')"><span class="ic x">XLSX</span><div><b>Dagvattenutredning Norra hamnen</b><div class="muted" style="font-size:12.5px">Otydlig ersättningsform, så verktyget måste fråga dig</div></div></button>
+        </div>
+      </div>
+      <div><button class="btn ghost sm" onclick="manualDraft()">Skapa projekt utan anbud</button></div>
+    </div>`;
+  if (w.step === 2) body = `<div class="reading">
+      <h2>Läser ${esc(w.filnamn)}</h2>
+      <div class="bar"><i></i></div>
+      <div class="muted" id="readStatus">${esc(w.status || "Hämtar text ur filen…")}</div>
+      <div class="stream" id="stream"></div>
+      <button class="btn sm" onclick="abortRead()">Avbryt och tolka enklare</button></div>`;
+  if (w.step === 3) body = reviewHTML(w.draft);
+  app.innerHTML = `<section class="panel">${head}${body}</section>`;
+  if (w.step === 1) wireDrop();
+}
+
+function wireDrop() {
+  const d = $("#drop"), fi = $("#fileIn");
+  d.onclick = () => fi.click();
+  d.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fi.click(); } };
+  fi.onchange = () => { if (fi.files[0]) handleFile(fi.files[0]); fi.value = ""; };
+  ["dragenter", "dragover"].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => d.addEventListener(ev, e => { e.preventDefault(); d.classList.remove("over"); }));
+  d.addEventListener("drop", e => { const f = e.dataTransfer.files[0]; if (f) handleFile(f); });
+}
+// Släpp utanför ytan ska inte öppna filen i webbläsaren
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("drop", e => { e.preventDefault(); if (ui.view === "wizard" && ui.wiz.step === 1 && !e.target.closest?.("#drop") && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+
+async function handleFile(file) {
+  const w = ui.wiz; w.err = null; w.filnamn = file.name; w.step = 2; w.status = "Hämtar text ur filen…"; render();
+  try {
+    const text = await extractText(file);
+    if (!text || text.replace(/\s/g, "").length < 40) throw new Error("Filen innehåller ingen läsbar text. Om det är en inskannad PDF behöver den först göras sökbar.");
+    await interpret(text, file.name);
+  } catch (e) { w.step = 1; w.err = e.message || String(e); render(); }
+}
+function useExample(k) { const e = EXEMPEL[k]; const w = ui.wiz; w.err = null; w.filnamn = e.filnamn; w.step = 2; render(); interpret(e.text, e.filnamn); }
+function setStatus(s) { ui.wiz.status = s; const el = $("#readStatus"); if (el) el.textContent = s; }
+
+// ---------- Textutvinning ----------
+async function extractText(file) {
+  const name = file.name.toLowerCase(), buf = await file.arrayBuffer();
+  if (name.endsWith(".pdf")) {
+    setStatus("Läser PDF…");
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js");
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buf), isEvalSupported: false }).promise;
+    const out = [];
+    for (let i = 1; i <= Math.min(pdf.numPages, 60); i++) {
+      const tc = await (await pdf.getPage(i)).getTextContent();
+      const rows = [];
+      tc.items.filter(it => it.str.trim()).forEach(it => {
+        const y = it.transform[5], x = it.transform[4];
+        let r = rows.find(r => Math.abs(r.y - y) < 3); if (!r) { r = { y, items: [] }; rows.push(r); }
+        r.items.push({ x, w: it.width, s: it.str });
+      });
+      rows.sort((a, b) => b.y - a.y).forEach(r => {
+        r.items.sort((a, b) => a.x - b.x); let line = "", end = null;
+        r.items.forEach(it => { line += end == null ? it.s : (it.x - end > 12 ? " | " : (it.x - end > 1 ? " " : "")) + it.s; end = it.x + it.w; });
+        out.push(line);
+      });
+    }
+    return out.join("\n");
+  }
+  if (name.endsWith(".docx")) {
+    setStatus("Läser Word-dokument…");
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js");
+    const { value } = await mammoth.convertToHtml({ arrayBuffer: buf });
+    const doc = new DOMParser().parseFromString(value, "text/html"); const out = [];
+    doc.body.childNodes.forEach(n => {
+      if (n.nodeName === "TABLE") n.querySelectorAll("tr").forEach(tr => out.push([...tr.children].map(c => c.textContent.trim()).join(" | ")));
+      else if (n.textContent.trim()) out.push(n.textContent.trim());
+    });
+    return out.join("\n");
+  }
+  if (/\.(xlsx|xls|csv)$/.test(name)) {
+    setStatus("Läser kalkylblad…");
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js");
+    const wb = XLSX.read(new Uint8Array(buf), { type: "array" });
+    return wb.SheetNames.map(n => {
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, blankrows: false, defval: "" });
+      return (wb.SheetNames.length > 1 ? `Flik: ${n}\n` : "") + rows.map(r => { const c = r.map(v => String(v).trim()); while (c.length && !c[c.length - 1]) c.pop(); return c.join(" | "); }).filter(Boolean).join("\n");
+    }).join("\n\n");
+  }
+  if (name.endsWith(".txt")) return new TextDecoder().decode(buf);
+  if (name.endsWith(".doc")) throw new Error("Äldre Word-filer (.doc) kan inte läsas. Spara om anbudet som .docx eller PDF och försök igen.");
+  throw new Error("Filtypen stöds inte. Använd PDF, Word (.docx), Excel (.xlsx) eller CSV.");
+}
+
+// ---------- Tolkning med AI, med enkel tolkning som reserv ----------
+const PROMPT = text => `Du läser ett anbud för ett konsult- eller bygguppdrag i Sverige och ska ta fram underlag för att skapa ett projekt i ett projektledarverktyg.
+Svara ENDAST med JSON enligt schemat nedan, utan förklarande text. Belopp i kronor som tal (utan mellanslag), timmar som tal, datum som ÅÅÅÅ-MM-DD.
+Varje fält i "falt" har formen {"varde": ..., "osaker": true|false, "kommentar": "kort förklaring på svenska om varför det är osäkert, annars tom"}.
+Markera osaker=true när värdet är gissat, härlett, motsägelsefullt eller saknas. Hitta aldrig på värden: sätt varde till null om uppgiften saknas.
+
+Regler:
+- uppdragsnamn: uppdragets namn så som det beskrivs i anbudet, lämpligt som projektnamn.
+- uppdragsnummer: anbudets eller uppdragets nummer om det finns. Markera alltid osaker=true med kommentaren att det kan behöva bytas mot ert interna uppdragsnummer.
+- ersattningsform: "fast" om anbudet tydligt anger fast pris/fast arvode, "rorligt" om det tydligt anger löpande räkning/rörligt arvode/takpris med löpande debitering. Om det inte uttryckligen framgår: varde null och osaker true. Hänvisning till ABK 09 avgör INTE ersättningsformen. "Bedömd kostnad" eller "uppskattning" utan tydlig formulering räcker inte.
+- totalsumma: anbudets totala summa exklusive moms.
+- tasks: alla arbetsmoment och leveranser med timmar. "fas" är fasens eller rubrikens namn (null om faser saknas). "roll" ska matcha ett namn i "roller" om möjligt. "kostnad" som anbudet anger för momentet.
+- reserver: reserver eller oförutsett, med "ingar": true om beloppet ingår i totalsumman.
+- apriser: á-priser och styckpriser.
+- anteckningar: korta noteringar om annat projektledaren bör känna till (villkor, avvikelser, motsägelser i summor).
+
+Schema:
+{"falt":{"uppdragsnamn":F,"uppdragsnummer":F,"bestallare":F,"anbudsdatum":F,"startdatum":F,"slutdatum":F,"ersattningsform":F,"totalsumma":F},
+"roller":[{"namn":"","timpris":0}],
+"tasks":[{"kod":"","fas":"","namn":"","roll":"","timmar":0,"timpris":0,"kostnad":0,"osaker":false,"kommentar":""}],
+"reserver":[{"beskrivning":"","belopp":0,"ingar":false}],
+"apriser":[{"beskrivning":"","pris":0,"enhet":""}],
+"anteckningar":[""]}
+
+Anbudets text (tabellceller är åtskilda med |):
+"""
+${text.slice(0, 120000)}
+"""`;
+
+async function interpret(text, filnamn) {
+  const w = ui.wiz; let sample = null;
+  try { sample = window.claude?.use ? await window.claude.use("sample") : null; } catch {}
+  if (sample && !w.forceSimple) {
+    setStatus("Claude läser anbudet. Det tar oftast 20–60 sekunder…");
+    w.ctl = new AbortController();
+    try {
+      const r = await sample.json(PROMPT(text), { signal: w.ctl.signal, modelTier: "default",
+        onText: ({ text: t }) => { setStatus("Claude skriver sammanställningen…"); const el = $("#stream"); if (el) el.textContent = t.slice(-600); } });
+      if (ui.wiz !== w) return;
+      return toReview(fromAI(r), filnamn, "ai", text);
+    } catch (e) {
+      if (ui.wiz !== w) return;
+      const why = { not_granted: "Du tillät inte AI-tolkning", cancelled: "Du avbröt AI-tolkningen", rate_limited: "AI-tjänsten är tillfälligt överbelastad", invalid_json: "AI-svaret gick inte att läsa" }[e?.code] || "AI-tolkningen misslyckades";
+      w.note = why + ", så en enklare regelbaserad tolkning användes. Kontrollera fälten extra noga.";
+    }
+  } else if (!w.forceSimple) w.note = "AI-tolkning är inte tillgänglig i den här vyn, så en enklare regelbaserad tolkning användes. Kontrollera fälten extra noga.";
+  toReview(parseSimple(text), filnamn, "enkel", text);
+}
+function abortRead() { const w = ui.wiz; w.forceSimple = true; w.note = "Du avbröt AI-tolkningen, så en enklare regelbaserad tolkning användes. Kontrollera fälten extra noga."; w.ctl?.abort(); }
+
+const F = (varde, osaker = false, kommentar = "") => ({ varde, osaker, kommentar });
+function fromAI(r) {
+  const f = r?.falt || {}; const g = k => F(f[k]?.varde ?? null, !!f[k]?.osaker || f[k]?.varde == null, f[k]?.kommentar || (f[k]?.varde == null ? "Hittades inte i anbudet" : ""));
+  const ef = g("ersattningsform"); if (!["fast", "rorligt"].includes(ef.varde)) { ef.varde = null; ef.osaker = true; }
+  return {
+    falt: { uppdragsnamn: g("uppdragsnamn"), uppdragsnummer: g("uppdragsnummer"), bestallare: g("bestallare"), anbudsdatum: g("anbudsdatum"), startdatum: g("startdatum"), slutdatum: g("slutdatum"), ersattningsform: ef, totalsumma: g("totalsumma") },
+    roller: (r?.roller || []).map(x => ({ namn: x.namn || "", timpris: num(x.timpris) })),
+    tasks: (r?.tasks || []).map(t => ({ kod: t.kod || "", fas: t.fas || "", namn: t.namn || "", roll: t.roll || "", timmar: num(t.timmar), timpris: num(t.timpris), kostnad: num(t.kostnad), osaker: !!t.osaker, kommentar: t.kommentar || "" })),
+    reserver: (r?.reserver || []).map(x => ({ beskrivning: x.beskrivning || "Reserv", belopp: num(x.belopp), ingar: !!x.ingar })),
+    apriser: (r?.apriser || []).map(x => ({ beskrivning: x.beskrivning || "", pris: num(x.pris), enhet: x.enhet || "" })),
+    anteckningar: (r?.anteckningar || []).filter(Boolean)
+  };
+}
+
+// Regelbaserad tolkning för anbud med tydliga tabeller
+function parseSimple(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const find = re => { for (const l of lines) { const m = l.match(re); if (m) return m[1].trim(); } return null; };
+  const notFound = "Hittades inte i anbudet";
+  const namn = find(/^(?:Avser|Uppdrag|Uppdragsnamn)\s*[:|]\s*(.+)$/i) || find(/^Anbud\s*\|\s*(.+)$/i) || (lines[0] || "").replace(/^Anbud\s*[–-]\s*/i, "");
+  const best = find(/^(?:Beställare|Till|Kund)\s*[:|]\s*(.+)$/i);
+  const nr = find(/^Anbudsnummer\s*[:|]\s*(.+)$/i) || find(/^Anbud(?:snr)?\.?\s+([A-ZÅÄÖ]{0,3}-?\d[\d-]{3,})/i);
+  const ad = iso(find(/Anbudsdatum\s*[:|]\s*(\S+)/i));
+  const period = find(/^Period\s*[:|]\s*(.+)$/i) || "";
+  const pd = period.match(/\d{4}-\d{2}-\d{2}/g) || [];
+  const sd = iso(find(/starta\D{0,12}(\d{4}-\d{2}-\d{2})/i)) || pd[0] || "";
+  const ed = iso(find(/avslutas\D{0,12}(\d{4}-\d{2}-\d{2})/i)) || pd[1] || "";
+  const all = lines.join("\n");
+  let form = null;
+  if (/fast\s+(arvode|pris)|till fast/i.test(all)) form = "fast";
+  else if (/löpande räkning|rörligt arvode|löpande debitering/i.test(all)) form = "rorligt";
+  const roller = [], tasks = []; let mode = null, col = {}, fas = "", sum = null;
+  for (const l of lines) {
+    if (!l.includes("|")) { if (mode === "tasks" && /^fas\b/i.test(l)) fas = l; else if (mode && !/^fas\b/i.test(l)) mode = null; continue; }
+    const c = l.split("|").map(s => s.trim()), low = c.map(s => s.toLowerCase());
+    if (low.some(s => /timpris|pris\/h|kr\/h/.test(s)) && low.some(s => /^(roll|kategori|befattning)/.test(s)) && !low.some(s => /^timmar|^tim$/.test(s))) { mode = "roller"; col = { n: low.findIndex(s => /^(roll|kategori|befattning)/.test(s)), p: low.findIndex(s => /timpris|kr\/h|pris/.test(s)) }; continue; }
+    if (low.some(s => /^timmar|^tim\b|^antal tim/.test(s))) {
+      mode = "tasks"; const ix = re => low.findIndex(s => re.test(s));
+      col = { k: ix(/^(kod|nr|id|pos)/), m: ix(/moment|aktivitet|leverans|beskrivning/), r: ix(/^roll|kategori/), h: ix(/^timmar|^tim\b|^antal tim/), b: ix(/belopp|kostnad|summa|arvode/), p: ix(/timpris|à-pris|á-pris/) }; continue;
+    }
+    if (mode === "roller") { const p = num(c[col.p]); if (c[col.n] && p != null) roller.push({ namn: c[col.n], timpris: p }); else mode = null; continue; }
+    if (mode === "tasks") {
+      const filled = c.filter(Boolean);
+      if (low.some(s => /^(summa|totalt|total|bedömd kostnad|totalsumma)/.test(s))) { sum = num(c[col.b]); mode = null; continue; }
+      if (filled.length === 1 && col.h >= 0 && num(c[col.h]) == null) { fas = filled[0]; continue; }
+      const h = num(c[col.h]);
+      if (h != null && (c[col.m] || c[col.k])) {
+        const roll = col.r >= 0 ? c[col.r] : ""; const rp = roller.find(r => r.namn.toLowerCase() === roll.toLowerCase());
+        const kost = col.b >= 0 ? num(c[col.b]) : null;
+        const tp = col.p >= 0 ? num(c[col.p]) : rp ? rp.timpris : (kost && h ? kost / h : null);
+        tasks.push({ kod: col.k >= 0 ? c[col.k] : "", fas, namn: c[col.m] || c[col.k], roll, timmar: h, timpris: tp, kostnad: kost, osaker: !rp && !!roll, kommentar: !rp && roll ? "Rollen finns inte bland timpriserna" : "" });
+      }
+    }
+  }
+  const tot = num(find(/fast\s+(?:arvode|pris)\s+(?:om|på)?\s*([\d\s ]+)\s*kr/i)) ?? sum;
+  const reserver = []; const apriser = [];
+  lines.filter(l => /reserv|oförutsett/i.test(l)).forEach(l => {
+    const m = l.match(/\(([\d\s ]+)\s*kr\)/) || l.match(/([\d][\d\s ]{2,})\s*kr/);
+    if (m) reserver.push({ beskrivning: l.split(/[.:]/)[0].trim(), belopp: num(m[1]), ingar: !/(ingår inte|ingår ej)/i.test(l) });
+  });
+  lines.forEach(l => {
+    let m; const re = /([^.:|]*?)\s+(?:debiteras\s+)?(?:med\s+)?[áà]\s*([\d\s]+)\s*kr(?:\/(\w+))?/gi;
+    while ((m = re.exec(l))) apriser.push({ beskrivning: m[1].trim(), pris: num(m[2]), enhet: m[3] || "" });
+    if (/^[áà]-?priser/i.test(l)) { const re2 = /([^.:]*?)\s+debiteras med\s+([\d\s]+)\s*kr(?:\/(\w+))?/gi; while ((m = re2.exec(l))) apriser.push({ beskrivning: m[1].trim(), pris: num(m[2]), enhet: m[3] || "" }); }
+  });
+  return {
+    falt: {
+      uppdragsnamn: F(namn || null, !namn, namn ? "" : notFound),
+      uppdragsnummer: F(nr, true, nr ? "Anbudets nummer. Byt till ert interna uppdragsnummer om det skiljer sig." : notFound),
+      bestallare: F(best, !best, best ? "" : notFound),
+      anbudsdatum: F(ad || null, !ad, ad ? "" : notFound),
+      startdatum: F(sd || null, !sd, sd ? "" : notFound),
+      slutdatum: F(ed || null, !ed, ed ? "" : notFound),
+      ersattningsform: F(form, !form, form ? "" : "Anbudet anger inte tydligt om det är fast pris eller löpande räkning"),
+      totalsumma: F(tot, tot == null || (sum != null && /bedömd/i.test(all)), tot == null ? notFound : /bedömd/i.test(all) ? "Anbudet anger en bedömd kostnad, inte ett fast belopp" : "")
+    }, roller, tasks, reserver, apriser, anteckningar: []
+  };
+}
+
+// ---------- Granskning ----------
+function toReview(x, filnamn, kalla, text) {
+  const w = ui.wiz;
+  // Komplettera timpris från roll och fyll i saknade roller
+  x.tasks.forEach(t => {
+    const r = x.roller.find(r => r.namn.toLowerCase() === (t.roll || "").toLowerCase());
+    if (t.timpris == null && r) t.timpris = r.timpris;
+    if (t.timpris == null && t.kostnad && t.timmar) t.timpris = t.kostnad / t.timmar;
+    if (t.kostnad != null && t.timmar != null && t.timpris != null && Math.abs(t.kostnad - t.timmar * t.timpris) > 1) { t.osaker = true; t.kommentar = t.kommentar || `Anbudet anger ${kr(t.kostnad)}, timmar × timpris ger ${kr(t.timmar * t.timpris)}`; }
+    t.id = uid();
+  });
+  w.draft = { ...x, filnamn, kalla, confirmed: {} };
+  w.step = 3; render();
+}
+const FIELDS = [
+  ["uppdragsnamn", "Projektnamn", "text", "Förslag från uppdragets namn i anbudet"],
+  ["uppdragsnummer", "Uppdragsnummer", "text"],
+  ["bestallare", "Beställare", "text"],
+  ["startdatum", "Startdatum", "date"],
+  ["slutdatum", "Slutdatum", "date"],
+  ["anbudsdatum", "Anbudsdatum", "date"],
+  ["totalsumma", "Anbudets totalsumma (kr)", "number"]
+];
+const unsure = (d, k) => d.falt[k].osaker && !d.confirmed[k];
+function reviewHTML(d) {
+  const w = ui.wiz;
+  const ef = d.falt.ersattningsform; const efAsk = ef.osaker && !d.confirmed.ersattningsform;
+  const cost = d.tasks.reduce((s, t) => s + (num(t.timmar) || 0) * (num(t.timpris) || 0), 0), hours = d.tasks.reduce((s, t) => s + (num(t.timmar) || 0), 0);
+  const tot = num(d.falt.totalsumma.varde); const diff = tot != null ? cost - tot : null;
+  const nUnsure = FIELDS.filter(([k]) => unsure(d, k)).length + d.tasks.filter(t => t.osaker).length;
+  const canCreate = ef.varde && (d.falt.uppdragsnamn.varde || "").trim();
+  const roleOpts = r => `<option value=""></option>` + d.roller.map(x => `<option ${x.namn === r ? "selected" : ""}>${esc(x.namn)}</option>`).join("") + (r && !d.roller.some(x => x.namn === r) ? `<option selected>${esc(r)}</option>` : "");
+  return `<div class="bd stack" id="review">
+    <div><h1 style="margin-bottom:4px">Granska vad verktyget hittade</h1>
+      <p class="muted" style="margin:0">Från <b>${esc(d.filnamn)}</b>. ${nUnsure ? `<span style="color:var(--warn)">${nUnsure} uppgifter är markerade som osäkra.</span> Kontrollera dem och klicka på markeringen när de stämmer.` : "Inga uppgifter är markerade som osäkra."}</p></div>
+    ${w.note ? `<div class="notice warn">${esc(w.note)}</div>` : ""}
+    ${d.kalla === "ai" ? `<div class="notice"><span>Uppgifterna är framtagna av Claude ur anbudets text. Inget sparas förrän du klickar på <b>Skapa projekt</b>.</span></div>` : ""}
+
+    <div class="q ${efAsk ? "" : "answered"}">
+      <div><h3>${efAsk ? "Är uppdraget fast pris eller löpande räkning?" : "Ersättningsform"}</h3>
+      ${efAsk ? `<div class="why" style="margin-top:2px">${esc(ef.kommentar || "Det framgår inte tydligt av anbudet.")}</div>` : `<div class="muted" style="font-size:12.5px">${d.confirmed.ersattningsform && ef.osaker ? "Vald av dig" : "Läst ur anbudet"}</div>`}</div>
+      <div class="choice">
+        <label><input type="radio" name="ef" value="fast" ${ef.varde === "fast" && !efAsk ? "checked" : ""}><span><b>Fast pris</b><div class="muted" style="font-size:12.5px">Prognosen visar resultat och marginal</div></span></label>
+        <label><input type="radio" name="ef" value="rorligt" ${ef.varde === "rorligt" && !efAsk ? "checked" : ""}><span><b>Löpande räkning</b><div class="muted" style="font-size:12.5px">Prognosen visar förväntad fakturering</div></span></label>
+      </div>
+    </div>
+
+    <div class="fields">
+      ${FIELDS.map(([k, label, type, hint]) => { const f = d.falt[k]; const u = unsure(d, k); return `<div class="field ${u ? "unsure" : ""}">
+        <div class="fl"><label class="label" for="f_${k}">${label}</label>${u ? `<button type="button" class="chip warn flagbtn" data-ok="${k}" title="Markera som kontrollerad">Osäker ✓?</button>` : f.osaker ? `<span class="chip ok">Kontrollerad</span>` : ""}</div>
+        <input type="${type === "number" ? "text" : type}" id="f_${k}" data-f="${k}" ${type === "number" ? 'inputmode="numeric"' : ""} value="${esc(type === "number" ? (f.varde != null ? Math.round(f.varde).toLocaleString("sv-SE") : "") : type === "date" ? iso(f.varde) : f.varde ?? "")}">
+        ${u && f.kommentar ? `<div class="why">${esc(f.kommentar)}</div>` : hint && !u ? `<div class="muted" style="font-size:12px">${hint}</div>` : ""}</div>`; }).join("")}
+    </div>
+
+    <div class="stack" style="gap:8px">
+      <div class="fl"><h2>Timpriser per roll</h2><button type="button" class="btn sm" data-act="addRole">Lägg till roll</button></div>
+      <div class="tw"><table><thead><tr><th>Roll</th><th class="n" style="width:160px">Timpris (kr/h)</th><th style="width:40px"></th></tr></thead><tbody>
+        ${d.roller.map((r, i) => `<tr><td><input type="text" data-role="${i}" data-k="namn" value="${esc(r.namn)}" aria-label="Roll"></td><td><input class="n" type="text" inputmode="numeric" data-role="${i}" data-k="timpris" value="${r.timpris ?? ""}" aria-label="Timpris"></td><td><button type="button" class="btn ghost sm" data-delrole="${i}" aria-label="Ta bort roll">✕</button></td></tr>`).join("") || `<tr><td colspan="3" class="muted">Inga timpriser hittades. Lägg till roller eller ange timpris direkt på momenten.</td></tr>`}
+      </tbody></table></div>
+    </div>
+
+    <div class="stack" style="gap:8px">
+      <div class="fl"><h2>Arbetsmoment och leveranser</h2><button type="button" class="btn sm" data-act="addTask">Lägg till moment</button></div>
+      <div class="tw"><table style="min-width:860px"><thead><tr><th style="width:150px">Fas</th><th style="width:70px">Kod</th><th>Moment</th><th style="width:170px">Roll</th><th class="n" style="width:84px">Timmar</th><th class="n" style="width:100px">Timpris</th><th class="n" style="width:110px">Kostnad</th><th style="width:40px"></th></tr></thead><tbody>
+        ${d.tasks.map((t, i) => `<tr class="${t.osaker ? "flag" : ""}" title="${esc(t.kommentar)}">
+          <td><input type="text" data-task="${i}" data-k="fas" value="${esc(t.fas)}" aria-label="Fas"></td>
+          <td><input type="text" data-task="${i}" data-k="kod" value="${esc(t.kod)}" aria-label="Kod" class="mono"></td>
+          <td><input type="text" data-task="${i}" data-k="namn" value="${esc(t.namn)}" aria-label="Moment">${t.osaker && t.kommentar ? `<div class="why">${esc(t.kommentar)}</div>` : ""}</td>
+          <td><select data-task="${i}" data-k="roll" aria-label="Roll">${roleOpts(t.roll)}</select></td>
+          <td><input class="n" type="text" inputmode="decimal" data-task="${i}" data-k="timmar" value="${t.timmar ?? ""}" aria-label="Timmar"></td>
+          <td><input class="n" type="text" inputmode="numeric" data-task="${i}" data-k="timpris" value="${t.timpris != null ? Math.round(t.timpris) : ""}" aria-label="Timpris"></td>
+          <td class="n">${kr((num(t.timmar) || 0) * (num(t.timpris) || 0))}</td>
+          <td><button type="button" class="btn ghost sm" data-deltask="${i}" aria-label="Ta bort moment">✕</button></td></tr>`).join("")}
+        <tr class="sum"><td colspan="4">Totalt</td><td class="n">${tal(hours)}</td><td></td><td class="n">${kr(cost)}</td><td></td></tr>
+      </tbody></table></div>
+      ${tot != null ? (Math.abs(diff) <= 1 ? `<div class="check ok">✓ Summan av momenten stämmer med anbudets totalsumma ${kr(tot)}.</div>` : `<div class="check warn">Summan av momenten (${kr(cost)}) skiljer sig ${kr(Math.abs(diff))} från anbudets totalsumma (${kr(tot)}). Kontrollera timmar och timpriser.</div>`) : ""}
+    </div>
+
+    ${(d.reserver.length || d.apriser.length || d.anteckningar.length) ? `<div class="cols">
+      ${d.reserver.length || d.apriser.length ? `<div class="stack" style="gap:8px"><h2>Á-priser och reserver</h2><div class="tw"><table><tbody>
+        ${d.apriser.map(a => `<tr><td>${esc(a.beskrivning)}</td><td class="n">${kr(a.pris)}${a.enhet ? "/" + esc(a.enhet) : ""}</td></tr>`).join("")}
+        ${d.reserver.map(r => `<tr><td>${esc(r.beskrivning)}<div class="muted" style="font-size:12px">${r.ingar ? "Ingår i totalsumman" : "Ingår inte i totalsumman"}</div></td><td class="n">${kr(r.belopp)}</td></tr>`).join("")}
+      </tbody></table></div></div>` : ""}
+      ${d.anteckningar.length ? `<div class="stack" style="gap:8px"><h2>Att känna till</h2><ul class="list">${d.anteckningar.map(a => `<li>${esc(a)}</li>`).join("")}</ul></div>` : ""}
+    </div>` : ""}
+  </div>
+  <div class="foot">
+    <span class="grow ${canCreate ? "muted" : "why"}">${!ef.varde || efAsk ? "Välj fast pris eller löpande räkning för att fortsätta." : !(d.falt.uppdragsnamn.varde || "").trim() ? "Ange ett projektnamn." : `${d.tasks.length} moment · ${kr(cost)}`}</span>
+    <button class="btn" onclick="ui.wiz.step=1;ui.wiz.note=null;ui.wiz.forceSimple=false;render()">Börja om</button>
+    <button class="btn primary" id="createBtn" ${canCreate && !efAsk ? "" : "disabled"}>Skapa projekt</button>
+  </div>`;
+}
+
+// Händelser i granskningen (delegerade så att fokus behålls vid inmatning)
+document.addEventListener("input", e => {
+  const d = ui.wiz?.draft; if (!d || ui.wiz.step !== 3) return; const el = e.target;
+  if (el.dataset.f) { const k = el.dataset.f; d.falt[k].varde = k === "totalsumma" ? num(el.value) : el.value; d.confirmed[k] = true; el.closest(".field").classList.remove("unsure"); if (k === "totalsumma" || k === "uppdragsnamn") refreshLater(); }
+  if (el.dataset.task != null && el.tagName === "INPUT") { const t = d.tasks[+el.dataset.task], k = el.dataset.k; t[k] = ["timmar", "timpris"].includes(k) ? num(el.value) : el.value; if (["timmar", "timpris"].includes(k)) refreshLater(); }
+  if (el.dataset.role != null) { const r = d.roller[+el.dataset.role], k = el.dataset.k; if (k === "timpris") { const old = r.timpris; r.timpris = num(el.value); d.tasks.forEach(t => { if (t.roll === r.namn && (t.timpris == null || t.timpris === old)) t.timpris = r.timpris; }); refreshLater(); } else { const old = r.namn; r.namn = el.value; d.tasks.forEach(t => { if (t.roll === old) t.roll = el.value; }); } }
+});
+document.addEventListener("change", e => {
+  const d = ui.wiz?.draft; if (!d || ui.wiz.step !== 3) return; const el = e.target;
+  if (el.name === "ef") { d.falt.ersattningsform.varde = el.value; d.confirmed.ersattningsform = true; refresh(); }
+  if (el.dataset.task != null && el.tagName === "SELECT") { const t = d.tasks[+el.dataset.task]; t.roll = el.value; const r = d.roller.find(r => r.namn === el.value); if (r) t.timpris = r.timpris; refresh(); }
+  if (el.dataset.role != null && el.dataset.k === "namn") refresh();
+});
+document.addEventListener("click", e => {
+  const d = ui.wiz?.draft; if (!d || ui.wiz.step !== 3) return; const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.ok) { d.confirmed[b.dataset.ok] = true; refresh(); }
+  if (b.dataset.act === "addTask") { const last = d.tasks[d.tasks.length - 1]; d.tasks.push({ id: uid(), fas: last?.fas || "", kod: "", namn: "", roll: "", timmar: null, timpris: null }); refresh(); }
+  if (b.dataset.act === "addRole") { d.roller.push({ namn: "Ny roll", timpris: null }); refresh(); }
+  if (b.dataset.deltask) { d.tasks.splice(+b.dataset.deltask, 1); refresh(); }
+  if (b.dataset.delrole) { d.roller.splice(+b.dataset.delrole, 1); refresh(); }
+  if (b.id === "createBtn") createProject();
+});
+let rt; function refreshLater() { clearTimeout(rt); rt = setTimeout(refresh, 600); }
+function refresh() {
+  const a = document.activeElement; const sel = a && (a.id || (a.dataset.task != null ? `[data-task="${a.dataset.task}"][data-k="${a.dataset.k}"]` : a.dataset.role != null ? `[data-role="${a.dataset.role}"][data-k="${a.dataset.k}"]` : null));
+  const pos = a?.selectionStart; const sy = window.scrollY;
+  render(); window.scrollTo(0, sy);
+  if (sel) { const el = a.id ? document.getElementById(a.id) : $(sel); if (el) { el.focus({ preventScroll: true }); try { if (pos != null) el.setSelectionRange(pos, pos); } catch {} } }
+}
+
+async function createProject() {
+  const w = ui.wiz, d = w.draft, f = d.falt;
+  const p = {
+    id: uid(), namn: (f.uppdragsnamn.varde || "").trim(), uppdragsnummer: (f.uppdragsnummer.varde || "").trim(), bestallare: (f.bestallare.varde || "").trim(),
+    ersattningsform: f.ersattningsform.varde, startdatum: iso(f.startdatum.varde), slutdatum: iso(f.slutdatum.varde), status: "Anbud",
+    anbud: { filnamn: d.filnamn, anbudsnummer: f.uppdragsnummer.varde || "", anbudsdatum: iso(f.anbudsdatum.varde), totalsumma: num(f.totalsumma.varde), tolkning: d.kalla },
+    roller: d.roller.filter(r => r.namn).map(r => ({ id: uid(), namn: r.namn, timpris: num(r.timpris) })),
+    tasks: d.tasks.filter(t => t.namn || t.kod).map(t => ({ id: t.id || uid(), kod: t.kod || "", fas: t.fas || "", namn: t.namn || t.kod, roll: t.roll || "", timmar: num(t.timmar) || 0, timpris: num(t.timpris) || 0 })),
+    apriser: d.apriser, reserver: d.reserver, anteckningar: d.anteckningar,
+    skapad: new Date().toISOString(), skapadAv: store.me || null, skapadPaSek: Math.round((Date.now() - w.start) / 1000)
+  };
+  const btn = $("#createBtn"); btn.disabled = true; btn.textContent = "Sparar…";
+  try {
+    await store.save(p);
+    const t = elapsed(); clearInterval(ui.tick);
+    ui.selected = p.id; lsSet("pmv.valt", p.id); ui.view = "projekt"; ui.wiz = null; render();
+    toast(`”${p.namn}” är skapat på ${t} min`);
+  } catch (err) { btn.disabled = false; btn.textContent = "Skapa projekt"; toast("Kunde inte spara: " + (err?.message || err)); }
+}
+function manualDraft() {
+  toReview({ falt: { uppdragsnamn: F("", true, "Ange ett namn"), uppdragsnummer: F("", false), bestallare: F("", false), anbudsdatum: F(null), startdatum: F(null), slutdatum: F(null), ersattningsform: F(null, true, "Välj ersättningsform"), totalsumma: F(null) }, roller: [], tasks: [], reserver: [], apriser: [], anteckningar: [] }, "Inget anbud", "manuell");
+}
+
+renderStore(); render(); store.init();
+</script>
+
+</body></html>
